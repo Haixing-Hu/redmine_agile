@@ -3,7 +3,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -62,6 +62,6 @@ class AgileRankTest < ActiveSupport::TestCase
     issue.reload
     agile_rank = issue.agile_rank
     assert issue.destroy
-    assert !AgileRank.exists?(agile_rank)
+    assert !AgileRank.exists?(agile_rank.id)
   end
 end

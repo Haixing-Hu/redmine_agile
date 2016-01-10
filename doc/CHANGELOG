@@ -1,8 +1,65 @@
 == Redmine Agile plugin changelog
 
 Redmine Agile plugin - Agile board plugin for redmine
-Copyright (C) 2011-2014 RedmineCRM
+Copyright (C) 2011-2015 RedmineCRM
 http://www.redminecrm.com/
+
+== 2015-11-03 v1.3.12
+
+* Estimated time sum in column header
+* Issue relations filter
+* Fixed bug with Mysql migration
+* Fixed bug with global board cards view
+* Fixed issue context menu bug
+
+== 2015-08-18 v1.3.11
+
+* Setting for closed cards view
+* Colorized by assignee
+
+== 2015-08-06 v1.3.10
+
+* Fixed bug with sticky headers after fullscreen auto update
+* Colored by spent time
+* Fixed bug with version planner unassigned issues
+* Added translation for module
+* Days in state card field
+
+== 2015-05-20 v1.3.9
+
+* Chinese translation (zhoutt)
+* Fixed print media styles for board
+* Parent task filter allowed commas
+* Version planner filters
+
+== 2015-03-06 v1.3.8
+
+* Redmine 3.0 support fixes
+* Autoupdate board on fullscreen view
+* N+1 agile color fixes
+* New filter Parent issue tracker
+* Total hours on version planning columns
+* Sub issues card field
+* Issue history for color changes
+
+== 2015-02-10 v1.3.6
+
+* Sticky headers in fullscreen mode (Dariusz Kowalski)
+* Ajax error messages
+* Fixed bug in version planner with wrong column ID
+* Fixed 404 when enter hit in version planning form
+* Portuguese (Brazil) translation (Marcelo de A. Fernandes)
+
+== 2014-10-28 v1.3.5
+
+* Default boards for projects roles and users
+* Sub-projects issues in version planner
+
+== 2014-10-16 v1.3.4
+
+* Added filters for Assignee's role and Assignee's group
+* Shared versions support
+* Assignee history log
 
 == 2014-09-28 v1.3.3
 

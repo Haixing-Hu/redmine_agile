@@ -13,7 +13,13 @@
       });
     },
 
+    // If there are no changes
+    backSortable: function($oldColumn) {
+      $oldColumn.sortable('cancel');
+    },
+
     successSortable: function($oldColumn, $column) {
+      clearErrorMessage();
       var r = new RegExp(/\d+/)
       var ids = [];
 
@@ -56,7 +62,7 @@
       }
 
       if (alertMessage) {
-        alert(alertMessage);
+        setErrorMessage(alertMessage);
       };
     },
 
@@ -69,17 +75,23 @@
         start: function(event, ui) {
           var $item = $(ui.item);
           $item.attr('oldColumnId', $item.parent().data('id'));
+          $item.attr('oldPosition', $item.index());
         },
         stop: function(event, ui) {
           var $item = $(ui.item);
           var sender = ui.sender;
           var $column = $item.parents('.issue-version-col');
           var issue_id = $item.data('id');
-          var version_id = $column.data("id");
+          var version_id = $column.attr("data-id");
           var order = $column.sortable('serialize');
           var positions = {};
           var oldId = $item.attr('oldColumnId');
           var $oldColumn = $('.ui-sortable[data-id="' + oldId + '"]');
+
+          if(!self.hasChange($item)){
+            self.backSortable($column);
+            return;
+          }
 
           $column.find('.issue-card').each(function(i, e) {
             var $e = $(e);
@@ -110,6 +122,12 @@
 
     },
 
+    hasChange: function($item){
+      var column = $item.parents('.issue-version-col');
+      return $item.attr('oldColumnId') != column.data('id') || // Checks a version change
+             $item.attr('oldPosition') != $item.index();
+    },
+
   }
 
   AgileBoard.prototype = {
@@ -124,12 +142,29 @@
         self.initDroppable();
       });
     },
-
+    // ----- estimated hours ------
+    recalculateEstimateHours: function(oldStatusId, newStatusId, value){
+      oldStatusElement = $('th[data-column-id="' + oldStatusId + '"]');
+      newStatusElement = $('th[data-column-id="' + newStatusId + '"]');
+      oldStatusElement.each(function(i, elem){
+        changeHtmlNumber(elem, -value);
+      });
+      newStatusElement.each(function(i, elem){
+        changeHtmlNumber(elem, value);
+      });
+    },
     successSortable: function(oldStatusId, newStatusId, oldSwimLaneId, newSwimLaneId) {
+      clearErrorMessage();
       decHtmlNumber('th[data-column-id="' + oldStatusId + '"] span.count');
       incHtmlNumber('th[data-column-id="' + newStatusId + '"] span.count');
       decHtmlNumber('tr.group.swimlane[data-id="' + oldSwimLaneId + '"] td span.count');
       incHtmlNumber('tr.group.swimlane[data-id="' + newSwimLaneId + '"] td span.count');
+
+    },
+
+    // If there are no changes
+    backSortable: function($oldColumn) {
+      $oldColumn.sortable('cancel');
     },
 
     errorSortable: function($oldColumn, responseText) {
@@ -149,7 +184,7 @@
         }
       }
       if (alertMessage) {
-        alert(alertMessage);
+        setErrorMessage(alertMessage);
       }
     },
 
@@ -164,6 +199,7 @@
           $item.attr('oldColumnId', $item.parent().data('id'));
           $item.attr('oldSwimLaneId', $item.parents('tr.swimlane').data('id'));
           $item.attr('oldSwimLaneField', $item.parents('tr.swimlane').attr('data-field'));
+          $item.attr('oldPosition', $item.index());
         },
         stop: function(event, ui) {
           var $item = $(ui.item);
@@ -181,6 +217,19 @@
           var oldSwimLaneField = $item.attr('oldSwimLaneField');
           var $oldColumn = $('.ui-sortable[data-id="' + oldStatusId + '"]');
 
+          if(!self.hasChange($item)){
+            self.backSortable($column);
+            return;
+          }
+          
+          if ($column.hasClass("closed")){
+            $item.addClass("float-left")
+          }
+          else{
+            $item.removeClass("closed-issue");
+            $item.removeClass("float-left")
+          }
+
           $column.find('.issue-card').each(function(i, e) {
             var $e = $(e);
             positions[$e.data('id')] = { position: $e.index() };
@@ -193,7 +242,7 @@
               positions: positions,
               id: issue_id
             }
-            params['issue'][swimLaneField] = swimLaneId;
+          params['issue'][swimLaneField] = swimLaneId;
 
           $.ajax({
             url: self.routes.update_agile_board_path,
@@ -201,6 +250,12 @@
             data: params,
             success: function(data, status, xhr) {
               self.successSortable(oldStatusId, newStatusId, oldSwimLaneId, swimLaneId);
+              $($item).replaceWith(data);
+              estimatedHours = $($item).find("span.hours");
+              if(estimatedHours.size() > 0){
+                hours = $(estimatedHours).html().replace(/(\(|\)|h)?/g, '');
+                self.recalculateEstimateHours(oldStatusId, newStatusId, hours);
+              }
             },
             error: function(xhr, status, error) {
               self.errorSortable($oldColumn, xhr.responseText);
@@ -212,12 +267,22 @@
     },
 
     initDraggable: function() {
-      $(".assignable-user").draggable({
-        helper: "clone",
-        start: function startDraggable(event, ui) {
-          $(ui.helper).addClass("draggable-active")
-        }
-      });
+      if ($("#group_by").val() != "assigned_to"){
+        $(".assignable-user").draggable({
+                helper: "clone",
+                start: function startDraggable(event, ui) {
+                  $(ui.helper).addClass("draggable-active")
+                }
+              });
+      }
+    },
+
+    hasChange: function($item){
+      var column = $item.parents('.issue-status-col');
+      var swimlane = $item.parents('tr.swimlane');
+      return $item.attr('oldColumnId') != column.data('id') || // Checks the status change
+             $item.attr('oldSwimLaneId') != swimlane.data('id') ||
+             $item.attr('oldPosition') != $item.index();
     },
 
     initDroppable: function() {
@@ -230,15 +295,21 @@
         tolerance: 'pointer',
         drop: function(event, ui) {
           var $self = $(this);
-
           $.ajax({
-            url: self.routes.issues_path + '/' + $self.data("id"),
+            url: self.routes.update_agile_board_path,
             type: "PUT",
-            dataType: "json",
+            dataType: "html",
             data: {
               issue: {
                 assigned_to_id: ui.draggable.data("id")
-              }
+              },
+              id: $self.data("id")
+            },
+            success: function(data, status, xhr){
+              $self.replaceWith(data);
+            },
+            error:function(xhr, status, error) {
+              alert(error);
             }
           });
           $self.find("p.info").show();
@@ -251,7 +322,110 @@
 
   window.AgileBoard = AgileBoard;
   window.PlanningBoard = PlanningBoard;
+
+  $.fn.StickyHeader = function() {
+    return this.each(function() {
+    var
+      $this = $(this),
+      $body = $('body'),
+      $html = $body.parent(),
+      $hideButton = $body.find('#hideSidebarButton'),
+      $fullScreenButton = $body.find('.icon-fullscreen'),
+      $containerFixed,
+      $tableFixed,
+      $tableRows,
+      $tableFixedRows,
+      containerWidth,
+      offset,
+      tableHeight,
+      tableHeadHeight,
+      tableOffsetTop,
+      tableOffsetBottom,
+      tmp;
+
+      function init() {
+          $this.wrap('<div class="container-fixed" />');
+          $tableFixed = $this.clone();
+          $containerFixed = $this.parents('.container-fixed');
+          $tableFixed
+              .find('tbody')
+              .remove()
+              .end()
+              .css({'display': 'table', 'top': '0px', 'position': 'fixed'})
+              .insertBefore($this)
+              .hide();
+      }
+
+      function resizeFixed() {
+          containerWidth = $containerFixed.width();
+          tableHeadHeight = $this.find("thead").height() + 3;
+          $tableRows = $this.find('thead th');
+          $tableFixedRows = $tableFixed.find('th');
+
+          $tableFixed.css({'width': containerWidth});
+
+          $tableRows.each(function(i) {
+              tmp = jQuery(this).width();
+              jQuery($tableFixedRows[i]).css('width', tmp);
+          });
+      }
+
+      function scrollFixed() {
+          tableHeight = $this.height();
+          tableHeadHeight = $this.find("thead").height();
+          offset = $(window).scrollTop();
+          tableOffsetTop = $this.offset().top;
+          tableOffsetBottom = tableOffsetTop + tableHeight - tableHeadHeight;
+
+          resizeFixed();
+
+          if (offset < tableOffsetTop || offset > tableOffsetBottom) {
+              $tableFixed.css('display', 'none');
+          } else if (offset >= tableOffsetTop && offset <= tableOffsetBottom) {
+              $tableFixed.css('display', 'table');
+              // Fix for chrome not redrawing header
+              $tableFixed.css('z-index', '1');
+              setTimeout(function(){
+                $tableFixed.css('z-index', '');
+              }, 0);
+          }
+      }
+
+      $hideButton.click(function() {
+          resizeFixed();
+      });
+
+      function bindScroll() {
+          if ($html.hasClass('agile-board-fullscreen')) {
+              $('div.agile-board.autoscroll').scroll(scrollFixed);
+              $(window).unbind('scroll');
+          } else {
+              $(window).scroll(scrollFixed);
+              $('div.agile-board.autoscroll').unbind('scroll');
+              $tableFixed.hide();
+          }
+      }
+
+      $fullScreenButton.click(function() {
+        bindScroll();
+      });
+
+      $(window).resize(resizeFixed);
+      init();
+      bindScroll();
+
+    });
+  };
 })();
+
+function setErrorMessage(message) {
+  $('div#agile-board-errors').html(message).show();
+  setTimeout(clearErrorMessage,3000);
+}
+
+function clearErrorMessage() {
+  $('div#agile-board-errors').html('').hide();
+}
 
 
 function incHtmlNumber(element) {
@@ -260,6 +434,22 @@ function incHtmlNumber(element) {
 
 function decHtmlNumber(element) {
   $(element).html(~~$(element).html() - 1);
+}
+
+function changeHtmlNumber(element, number){
+  elementWithHours = $(element).find("span.hours");
+  if (elementWithHours.size() > 0){
+    old_value = $(elementWithHours).html().replace(/(\(|\)|h)/);
+    new_value = parseFloat(old_value)+ parseFloat(number);
+    if (new_value > 0)
+      $(elementWithHours).html(new_value.toFixed(2) + "h");
+    else
+      $(elementWithHours).remove();
+  }
+  else{
+    new_value = number;
+    $(element).append("<span class='hours'>" + new_value + "h</span>");
+  }
 }
 
 
@@ -291,3 +481,48 @@ function observeIssueSearchfield(fieldId, url) {
     $this.bind('keyup click mousemove', reset);
   });
 }
+
+function recalculateHours() {
+  var backlogSum = 0;
+  $('.versions-planning-board td:nth-child(2) .issue-card').each(function(i, elem){
+    hours = parseFloat($(elem).data('estimated-hours'));
+    backlogSum += hours;
+  })
+  $('.versions-planning-board .backlog-hours').text('(' + backlogSum.toFixed(2) + 'h)');
+
+  var currentSum = 0;
+  $('.versions-planning-board td:nth-child(3) .issue-card').each(function(i, elem){
+    hours = parseFloat($(elem).data('estimated-hours'));
+    currentSum += hours;
+  })
+  $('.versions-planning-board .current-hours').text('(' + currentSum.toFixed(2) + 'h)');
+}
+
+function getToolTipInfo(node, url){
+  var issue_id = $(node).parents(".issue-card").data("id");
+  var tip = $(node).children(".tip");
+  if( $(tip).html() && $(tip).html().trim() != "")
+    return;
+  $.ajax({
+      url: url,
+      type: "get",
+      dataType: "html",
+      data: {
+        id: issue_id
+      },
+      success: function(data, status, xhr){
+        $(tip).html(data);
+      },
+      error:function(xhr, status, error) {
+        $(tip).html(error);
+      }
+    });
+}
+
+$(document).ready(function(){
+  $('table.issues-board').StickyHeader();
+  $('div#agile-board-errors').click(function(){
+    $(this).animate({top: -$(this).outerHeight()}, 500);
+  });
+  $('.tooltip').mouseenter(getToolTipInfo);
+});

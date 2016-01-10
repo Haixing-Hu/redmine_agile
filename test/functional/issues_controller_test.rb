@@ -20,9 +20,8 @@
 # along with redmine_agile.  If not, see <http://www.gnu.org/licenses/>.
 
 require File.expand_path('../../test_helper', __FILE__)
-require File.expand_path(File.dirname(__FILE__) + '/../../../../test/test_helper')
 
-class CommonViewsTest < ActionDispatch::IntegrationTest
+class IssuesControllerTest < ActionController::TestCase
   fixtures :projects,
            :users,
            :roles,
@@ -47,44 +46,13 @@ class CommonViewsTest < ActionDispatch::IntegrationTest
            :journal_details,
            :queries
 
+
   def setup
     @project_1 = Project.find(1)
+    @project_2 = Project.find(5)
     EnabledModule.create(:project => @project_1, :name => 'agile')
-    EnabledModule.create(:project => @project_1, :name => 'gantt')
-    EnabledModule.create(:project => @project_1, :name => 'calendar')
-    @request    = ActionController::TestRequest.new
-    @response   = ActionController::TestResponse.new
-    @request.env['HTTP_REFERER'] = '/'
-  end
-
-  test "View issues" do
-    log_user("admin", "admin")
-    get "/issues"
-    assert_response :success
-  end
-
-  test "View Gantt chart" do
-    log_user("admin", "admin")
-    get "/projects/ecookbook/issues/gantt"
-    assert_response :success
-  end
-
-  test "View Calendar" do
-    log_user("admin", "admin")
-    get "/projects/ecookbook/issues/calendar"
-    assert_response :success
-  end
-
-  test "View agile settings" do
-    log_user("admin", "admin")
-    get "/settings/plugin/redmine_agile"
-    assert_response :success
-  end
-
-  test "View version" do
-    log_user("admin", "admin")
-    get "/versions/2"
-    assert_response :success
+    EnabledModule.create(:project => @project_2, :name => 'agile')
+    @request.session[:user_id] = 1
   end
 
 end

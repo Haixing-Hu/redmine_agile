@@ -1,7 +1,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@ module RedmineAgile
       all_issues = @data_scope.
         where("#{Issue.table_name}.rgt - #{Issue.table_name}.lft = 1").
         where("#{Issue.table_name}.estimated_hours IS NOT NULL").
-        includes([:journals, :status, {:journals => {:details => :journal}}])
+        eager_load([:journals, :status, {:journals => {:details => :journal}}])
       cumulative_total_hours = @data_scope.where("#{Issue.table_name}.rgt - #{Issue.table_name}.lft = 1").sum("#{Issue.table_name}.estimated_hours").to_f
 
       data = chart_dates_by_period.select{|d| d <= Date.today}.map do |date|

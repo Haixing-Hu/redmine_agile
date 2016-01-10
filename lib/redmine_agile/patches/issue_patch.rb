@@ -1,7 +1,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -29,9 +29,8 @@ module RedmineAgile
         base.class_eval do
           unloadable
           has_one :agile_rank, :dependent => :destroy
-
-          scope :sorted_by_rank, includes(:agile_rank).
-                                   order("COALESCE(#{AgileRank.table_name}.position, 999999)")
+          scope :sorted_by_rank, lambda {eager_load(:agile_rank).
+                                   order("COALESCE(#{AgileRank.table_name}.position, 999999)")}
           alias_method_chain :agile_rank, :default
         end
       end
@@ -39,6 +38,17 @@ module RedmineAgile
       module InstanceMethods
         def agile_rank_with_default
           agile_rank_without_default || build_agile_rank
+        end
+
+        def day_in_state
+          change_time = journals.joins(:details).where(:journals => {:journalized_id => id, :journalized_type => "Issue"}, :journal_details => {:prop_key => 'status_id'}).order("created_on DESC").first
+          change_time.created_on 
+        rescue 
+          self.created_on
+        end
+
+        def sub_issues
+          descendants
         end
       end
     end

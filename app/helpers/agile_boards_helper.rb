@@ -3,7 +3,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -22,6 +22,9 @@
 module AgileBoardsHelper
   def agile_color_class(issue, options={})
     ''
+      end
+
+  def agile_user_color(login, options={})
   end
 
   def header_th(name, rowspan = 1, colspan = 1, leaf = nil)
@@ -30,13 +33,16 @@ module AgileBoardsHelper
       th_attributes[:"data-column-id"] = leaf.id
       issue_count = leaf.instance_variable_get("@issue_count")
       count_tag = " (#{content_tag(:span, issue_count.to_i, :class => 'count')})".html_safe
+      # estimated hours total
+      hours_count = leaf.instance_variable_get("@estimated_hours_sum") || 0
+      hours_tag = " #{content_tag(:span, ("%.2fh" % hours_count.to_f).to_s, :class => 'hours', :title => l(:field_estimated_hours))}".html_safe if hours_count > 0
     end
-    content_tag :th, h(name) + count_tag, th_attributes
+    content_tag :th, h(name) + count_tag + hours_tag, th_attributes
   end
 
   def render_board_headers(columns)
     "<tr>#{columns.map{|column| header_th(column.name, 1, 1, column)}.join}</tr>".html_safe
-  end
+      end
 
   def color_by_name(name)
     "##{"%06x" % (name.unpack('H*').first.hex % 0xffffff)}"
@@ -70,4 +76,39 @@ module AgileBoardsHelper
         (legend ? content_tag('td', content_tag('p', legend, :class => 'percent'), :class => 'legend') : ''.html_safe)
       ), :class => "progress progress-#{pcts[0]}", :style => "width: #{width};").html_safe
   end
+
+  def issue_children(issue)
+    return unless issue.children.any?
+    content_tag :ul do
+      issue.children.select{ |x| x.visible? }.each do |child|
+        id = if @query.has_column_name?(:tracker) || @query.has_column_name?(:id) then "##{child.id}:&nbsp;" else '' end
+        concat "<li class='#{'task-closed' if child.closed?}'><a href='#{issue_path(child)}'>#{id}#{child.subject}</a></li>#{issue_children(child)}".html_safe
+      end
+    end
+  end
+
+  def time_in_state(distance=nil)
+    return "" if !distance || !(distance.is_a? Time)
+    distance = Time.now - distance
+    hours = distance/(3600)
+    return "#{I18n.t('datetime.distance_in_words.x_hours', :count => hours.to_i)}" if hours < 24
+    "#{I18n.t('datetime.distance_in_words.x_days', :count => (hours/24).to_i)}"
+  end
+
+  def class_for_closed_issue(issue)
+    return '' if !RedmineAgile.hide_closed_issues_data?
+    return 'closed-issue' if issue.closed?
+    ''
+  end
+
+  def init_agile_tooltip_info
+    javascript_tag "function callGetToolTipInfo()
+      {
+        var url = '#{issue_tooltip_url}';
+        getToolTipInfo(this, url);
+      }
+      $('.tooltip').mouseenter(callGetToolTipInfo);
+    "
+  end
+
 end

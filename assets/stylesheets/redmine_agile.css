@@ -19,6 +19,7 @@ html.agile-board-fullscreen div.agile-board {
   bottom: 0px;
   z-index: 20;
   background: white;
+  overflow-y:scroll;
 }
 
 html.agile-board-fullscreen table.list.issues-board {
@@ -39,7 +40,7 @@ html.agile-board-fullscreen .icon-fullscreen {
 }
 
 div.agile-board.autoscroll {
-  overflow-y: scroll;
+  overflow: visible;
 }
 
 /**********************************************************************/
@@ -82,8 +83,16 @@ table.versions-planning-board td.issue-version-col {
   height: 400px;
 }
 
+table.list.versions-planning-board input#search.autocomplete {width: 80%;}
+
 table.list.versions-planning-board tbody tr,
 table.list.versions-planning-board tbody tr:hover {background-color: white;}
+table.list.versions-planning-board .header-hours {
+  float: right;
+  vertical-align: baseline;
+  height: 26px;
+  line-height: 26px;
+}
 
 /**********************************************************************/
 /* AGILE BOARD
@@ -126,7 +135,13 @@ table.issues-board.minimize-closed td.issue-status-col.closed .issue-card span.f
   text-align: left;
   white-space: normal;
   cursor: pointer;
+  float: left;
+  width: 90%;
 }
+
+.issue-card.float-left {float: left;}
+.issue-card.closed-issue {width: auto;}
+.issue-card .tip{ position: fixed;}
 
 .issue-card:not(.context-menu-selection) .attributes,
 .issue-card:not(.context-menu-selection) span.hours  {color: #888;}
@@ -134,9 +149,7 @@ table.issues-board.minimize-closed td.issue-status-col.closed .issue-card span.f
 .issue-card .attributes,
 .issue-card span.hours {font-size: 90%;}
 
-.issue-card span.hours {
-  float: right;
-}
+.issue-card span.hours {float: right;}
 
 .issue-card .thumbnail {
   height: 145px;
@@ -169,6 +182,23 @@ table.issues-board.minimize-closed td.issue-status-col.closed .issue-card span.f
 .issue-card table.progress td {
   height: 5px;
   padding: 0px;
+}
+
+.issue-card li.task-closed {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.issue-card div.sub-issues {
+  border-top: 1px solid #d5d5d5;
+  padding-top: 5px;
+  margin-top: 5px;
+  font-size: 90%;
+}
+
+.issue-card div.sub-issues ul {
+  margin: 1px 0px 5px 0px;
+  padding-left: 30px;
 }
 
 .issue-card .issue-id.without-tracker {
@@ -254,7 +284,8 @@ table.list.issues tr.issue.br-yellow, .issue-card.br-yellow {border-left: 5px so
 table.list.issues tr.issue.br-orange, .issue-card.br-orange {border-left: 5px solid orange;}
 table.list.issues tr.issue.br-purple, .issue-card.br-purple {border-left: 5px solid purple;}
 table.list.issues tr.issue.br-gray, .issue-card.br-gray {border-left: 5px solid gray;}
-
+table.list thead tr th span.hours {color: #888; float: right; font-size: 90%; font-weight: normal;}
+table.issues-board thead th {white-space: normal;}
 /*
 tr.issue.br-red td.id::before,
 tr.issue.br-green td.id::before,

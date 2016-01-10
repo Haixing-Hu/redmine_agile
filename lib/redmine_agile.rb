@@ -1,7 +1,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@ require 'douglas_peucker'
 require 'redmine_agile/hooks/views_layouts_hook'
 require 'redmine_agile/hooks/views_issues_hook'
 require 'redmine_agile/hooks/views_versions_hook'
-
 require 'redmine_agile/patches/issue_patch'
+
 require 'redmine_agile/patches/compatibility_patch'
 
 require 'redmine_agile/helpers/agile_helper'
@@ -65,11 +65,11 @@ module RedmineAgile
 
     def use_colors?
       false
-    end
+          end
 
     def color_base
       "none"
-    end
+          end
 
     def minimize_closed?
       Setting.plugin_redmine_agile['minimize_closed'].to_i > 0
@@ -81,6 +81,10 @@ module RedmineAgile
 
     def status_colors?
       false
+          end
+
+    def hide_closed_issues_data?
+      Setting.plugin_redmine_agile['hide_closed_issues_data'].to_i > 0
     end
 
   end

@@ -3,7 +3,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -47,10 +47,13 @@ class AgileVersionsControllerTest < ActionController::TestCase
            :queries
 
   def setup
+    
     @project_1 = Project.find(1)
-    @project_2 = Project.find(5)
+    @project_3 = Project.find(5)
+    
     EnabledModule.create(:project => @project_1, :name => 'agile')
-    EnabledModule.create(:project => @project_2, :name => 'agile')
+    EnabledModule.create(:project => @project_3, :name => 'agile')
+
     @request.session[:user_id] = 1
   end
 
@@ -61,14 +64,14 @@ class AgileVersionsControllerTest < ActionController::TestCase
   end
 
   def test_get_load
-    xhr :get, :load, :version_type => "backlog", :version_id => "3"
+    xhr :get, :load, :version_type => "backlog", :version_id => "3", :project_id => "ecookbook"
     assert_response :success
   end
 
   def test_get_autocomplete_id
-    xhr :get, :autocomplete, :project_id => "ecookbook", :q =>"#1"
+    xhr :get, :autocomplete, :project_id => "ecookbook", :q =>"#3"
     assert_response :success
-    assert_match "Can&#x27;t print recipes",  @response.body
+    assert_match "Error 281",  @response.body
   end
 
   def test_get_autocomplete_text

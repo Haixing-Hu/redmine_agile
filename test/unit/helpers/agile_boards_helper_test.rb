@@ -3,7 +3,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -35,4 +35,13 @@ class AgileBoardsHelperTest < ActiveSupport::TestCase
     User.current = nil
   end
 
+  def test_time_in_state
+    hour10 = Time.now - 10.hours
+    assert_equal "#{I18n.t('datetime.distance_in_words.x_hours', :count => 10)}", time_in_state(hour10)
+    one_day = Time.now - 25.hours
+    assert_equal "#{I18n.t('datetime.distance_in_words.x_days', :count => 1)}", time_in_state(one_day)
+    
+    assert_equal "", time_in_state(nil)
+    assert_equal "", time_in_state("string")
+  end
 end

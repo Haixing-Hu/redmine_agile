@@ -20,16 +20,15 @@
 # along with redmine_agile.  If not, see <http://www.gnu.org/licenses/>.
 
 require File.expand_path('../../test_helper', __FILE__)
-require File.expand_path(File.dirname(__FILE__) + '/../../../../test/test_helper')
 
-class CommonViewsTest < ActionDispatch::IntegrationTest
+class AgileVersionsQueryTest < ActiveSupport::TestCase
   fixtures :projects,
            :users,
            :roles,
            :members,
            :member_roles,
-           :issues,
            :issue_statuses,
+           :issues,
            :versions,
            :trackers,
            :projects_trackers,
@@ -48,43 +47,27 @@ class CommonViewsTest < ActionDispatch::IntegrationTest
            :queries
 
   def setup
-    @project_1 = Project.find(1)
-    EnabledModule.create(:project => @project_1, :name => 'agile')
-    EnabledModule.create(:project => @project_1, :name => 'gantt')
-    EnabledModule.create(:project => @project_1, :name => 'calendar')
-    @request    = ActionController::TestRequest.new
-    @response   = ActionController::TestResponse.new
-    @request.env['HTTP_REFERER'] = '/'
+    super
+    RedmineAgile.create_issues
+    @query = AgileVersionsQuery.new
+        @query.project = Project.find(2)
+    @backlog_version = Version.find(7)
+    @current_version = Version.find(5)
   end
 
-  test "View issues" do
-    log_user("admin", "admin")
-    get "/issues"
-    assert_response :success
+  def test_backlog_version
+    assert_equal @backlog_version, @query.backlog_version
   end
 
-  test "View Gantt chart" do
-    log_user("admin", "admin")
-    get "/projects/ecookbook/issues/gantt"
-    assert_response :success
+  def test_current_version
+    assert_equal @current_version, @query.current_version
   end
 
-  test "View Calendar" do
-    log_user("admin", "admin")
-    get "/projects/ecookbook/issues/calendar"
-    assert_response :success
+  def test_backlog_issues
+    assert_equal [100,101,102,103], @query.backlog_version_issues.map(&:id).sort
   end
-
-  test "View agile settings" do
-    log_user("admin", "admin")
-    get "/settings/plugin/redmine_agile"
-    assert_response :success
+  
+  def test_current_issues
+    assert_equal [104], @query.current_version_issues.map(&:id).sort
   end
-
-  test "View version" do
-    log_user("admin", "admin")
-    get "/versions/2"
-    assert_response :success
-  end
-
 end

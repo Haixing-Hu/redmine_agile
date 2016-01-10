@@ -1,7 +1,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -43,7 +43,7 @@ class AgileQuery < Query
     base = Project.allowed_to_condition(user, :view_issues, *args)
     user_id = user.logged? ? user.id : 0
 
-    includes(:project).where("(#{table_name}.project_id IS NULL OR (#{base})) AND (#{table_name}.is_public = ? OR #{table_name}.user_id = ?)", true, user_id)
+    eager_load(:project).where("(#{table_name}.project_id IS NULL OR (#{base})) AND (#{table_name}.is_public = ? OR #{table_name}.user_id = ?)", true, user_id)
   }
 
   def initialize(attributes=nil, *args)
@@ -54,7 +54,7 @@ class AgileQuery < Query
   end
 
   def card_columns
-    self.inline_columns.select{|c| !%w(tracker thumbnails description assigned_to done_ratio spent_hours estimated_hours project id).include?(c.name.to_s)}
+    self.inline_columns.select{|c| !%w(tracker thumbnails description assigned_to done_ratio spent_hours estimated_hours project id day_in_state).include?(c.name.to_s)}
   end
 
   def visible?(user=User.current)
@@ -62,19 +62,23 @@ class AgileQuery < Query
   end
 
   def is_private?
-    !is_public?
+    visibility == VISIBILITY_PRIVATE
+  end
+
+  def is_public?
+    !is_private?
+  end
+
+  def self.default_query(project=nil)
+    false
   end
 
   def visibility=(value)
-    is_public = (value == VISIBILITY_PUBLIC)
+    self.is_public = value == VISIBILITY_PUBLIC
   end
 
   def visibility
-    if is_public?
-      VISIBILITY_PUBLIC
-    else
-      VISIBILITY_PRIVATE
-    end
+    self.is_public ? VISIBILITY_PUBLIC : VISIBILITY_PRIVATE
   end
 
   def build_from_params(params)
@@ -300,7 +304,7 @@ class AgileQuery < Query
     @truncated = RedmineAgile.board_items_limit <= issue_scope.count
     all_issues = self.issues.limit(RedmineAgile.board_items_limit).sorted_by_rank
     all_issues.group_by{|i| [i.status_id]}
-  end
+      end
 
 private
   def issue_scope

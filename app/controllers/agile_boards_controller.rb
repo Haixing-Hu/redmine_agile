@@ -1,7 +1,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2014 RedmineCRM
+# Copyright (C) 2011-2015 RedmineCRM
 # http://www.redminecrm.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@ class AgileBoardsController < ApplicationController
 
   menu_item :agile
 
-  before_filter :find_issue, :only => [:update]
+  before_filter :find_issue, :only => [:update, :issue_tooltip]
   before_filter :find_optional_project, :only => [:index]
 
   helper :issues
@@ -54,12 +54,24 @@ class AgileBoardsController < ApplicationController
       @issues = @query.issues
       @issue_board = @query.issue_board
       @board_columns = @query.board_statuses
+      
+      if @query.has_column_name?(:day_in_state)
+        @journals_for_state = Journal.joins(:details).where(
+          :journals => {
+            :journalized_id => @issues.map{|issue| (issue.id rescue nil)}, 
+            :journalized_type => "Issue"
+          }, 
+          :journal_details => {:prop_key => 'status_id'}).order("created_on DESC") 
+      end
+
       respond_to do |format|
         format.html { render :template => 'agile_boards/index', :layout => !request.xhr? }
+        format.js
       end
     else
       respond_to do |format|
         format.html { render(:template => 'agile_boards/index', :layout => !request.xhr?) }
+        format.js
       end
     end
   rescue ActiveRecord::RecordNotFound
@@ -68,27 +80,36 @@ class AgileBoardsController < ApplicationController
 
   def update
     (render_403; return false) unless @issue.editable?
+    retrieve_agile_query_from_session
     @issue.init_journal(User.current)
     @issue.safe_attributes = params[:issue]
     saved = params[:issue] && params[:issue].inject(true) do |total, attribute|
        total &&= @issue.attributes[attribute.first].to_i == attribute.last.to_i
     end
+    call_hook(:controller_agile_boards_update_before_save, { :params => params, :issue => @issue})
+    @update = true
     if saved && @issue.save
+      call_hook(:controller_agile_boards_update_after_save, { :params => params, :issue => @issue})
       AgileRank.transaction do
-        Issue.includes(:agile_rank).find(params[:positions].keys).each do |issue|
+        Issue.eager_load(:agile_rank).find(params[:positions].keys).each do |issue|
           issue.agile_rank.position = params[:positions][issue.id.to_s]['position']
           issue.agile_rank.save
         end
-      end
+      end if params[:positions]
       respond_to do |format|
-        # format.js
-        format.html { render :json => @issue, :status => :ok, :layout => nil }
+        format.html { render(:partial => 'issue_card', :locals => {:issue => @issue}, :status => :ok, :layout => nil) }
       end
     else
       respond_to do |format|
-        format.html { render :json => @issue.errors.full_messages, :status => :fail, :layout => nil }
+        messages = @issue.errors.full_messages
+        messages = [l(:text_agile_move_not_possible)] if messages.empty?
+        format.html { render :json => messages, :status => :fail, :layout => nil }
       end
     end
+  end
+
+  def issue_tooltip
+    render :partial => 'issue_tooltip'
   end
 
 end
